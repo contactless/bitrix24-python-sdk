@@ -11,30 +11,33 @@ from multidimensional_urlencode import urlencode
 # Retries for API request
 adapters.DEFAULT_RETRIES = 10
 
-
 class Bitrix24(object):
     """Class for working with Bitrix24 cloud API"""
     # Bitrix24 API endpoint
     api_url = 'https://%s/rest/%s.json'
+    webhook_url = 'https://%s.bitrix24.ru/rest/1/%s/%s'
     # Bitrix24 oauth server
     oauth_url = 'https://oauth.bitrix.info/oauth/token/'
     # Timeout for API request in seconds
     timeout = 60
 
-    def __init__(self, domain, auth_token, refresh_token='', client_id='', client_secret=''):
+    def __init__(self, domain, auth_token='', refresh_token='', client_id='', client_secret='', webhook_key = ''):
         """Create Bitrix24 API object
         :param domain: str Bitrix24 domain
         :param auth_token: str Auth token
         :param refresh_token: str Refresh token
         :param client_id: str Client ID for refreshing access tokens
         :param client_secret: str Client secret for refreshing access tokens
+        :param webhook_key: str Webhook key that should be used. Use webhook_key or auth_token depending on app's autorisation method
+        
         """
         self.domain = domain
         self.auth_token = auth_token
         self.refresh_token = refresh_token
         self.client_id = client_id
         self.client_secret = client_secret
-
+        self.webhook_key = webhook_key
+        
     def call(self, method, params1=None, params2=None, params3=None, params4=None):
         """Call Bitrix24 API method
         :param method: Method name
@@ -66,7 +69,7 @@ class Bitrix24(object):
 
         try:
             # request url
-            url = self.api_url % (self.domain, method)
+            url = self.get_url(method)
             # Make API request
             r = post(url, data=encoded_parameters, timeout=self.timeout)
             # Decode response
@@ -85,7 +88,7 @@ class Bitrix24(object):
             result = self.call(method, params1, params2, params3, params4)
         elif 'error' in result and result['error'] in 'QUERY_LIMIT_EXCEEDED':
             # Suspend call on two second, wait for expired limitation time by Bitrix24 API
-            print 'SLEEP =)'
+            print('SLEEP =)')
             sleep(2)
             return self.call(method, params1, params2, params3, params4)
         return result
@@ -116,7 +119,13 @@ class Bitrix24(object):
         :return: dict
         """
         return {'auth_token': self.auth_token, 'refresh_token': self.refresh_token}
-
+    
+    def get_url(self, method):
+        if self.webhook_key:
+            return self.webhook_url % (self.domain, self.webhook_key, method)
+        else:
+            return self.api_url % (self.domain, method)
+        
     @staticmethod
     def prepare_batch(params):
         """
