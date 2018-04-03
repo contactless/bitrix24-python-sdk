@@ -88,7 +88,6 @@ class Bitrix24(object):
             # Repeat API request after renew token
             result = self.call(method, params1, params2, params3, params4)
         elif 'error' in result and result['error'] in ('QUERY_LIMIT_EXCEEDED',):
-            print(result)
             # Suspend call on two second, wait for expired limitation time by Bitrix24 API
             print('SLEEP =)')
             sleep(2)
