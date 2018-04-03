@@ -8,6 +8,7 @@ from time import sleep
 from requests import adapters, post, exceptions
 from multidimensional_urlencode import urlencode
 
+import logging
 # Retries for API request
 adapters.DEFAULT_RETRIES = 10
 
@@ -15,13 +16,13 @@ class Bitrix24(object):
     """Class for working with Bitrix24 cloud API"""
     # Bitrix24 API endpoint
     api_url = 'https://%s/rest/%s.json'
-    webhook_url = 'https://%s.bitrix24.ru/rest/1/%s/%s'
+    webhook_url = 'https://%s.bitrix24.ru/rest/%d/%s/%s'
     # Bitrix24 oauth server
     oauth_url = 'https://oauth.bitrix.info/oauth/token/'
     # Timeout for API request in seconds
     timeout = 60
 
-    def __init__(self, domain, auth_token='', refresh_token='', client_id='', client_secret='', webhook_key = ''):
+    def __init__(self, domain, auth_token='', refresh_token='', client_id='', client_secret='', webhook_key = '', webhook_user=1):
         """Create Bitrix24 API object
         :param domain: str Bitrix24 domain
         :param auth_token: str Auth token
@@ -37,6 +38,7 @@ class Bitrix24(object):
         self.client_id = client_id
         self.client_secret = client_secret
         self.webhook_key = webhook_key
+        self.webhook_user = webhook_user
         
     def call(self, method, params1=None, params2=None, params3=None, params4=None):
         """Call Bitrix24 API method
@@ -57,7 +59,7 @@ class Bitrix24(object):
         encoded_parameters = ''
 
         # print params1
-        for i in [params1, params2, params3, params4, {'auth': self.auth_token}]:
+        for i in [params1, params2, params3, params4, {'auth': self.auth_token} if self.auth_token else None]:
             if i is not None:
                 if 'cmd' in i:
                     i = dict(i)
@@ -66,7 +68,6 @@ class Bitrix24(object):
                     encoded_parameters += urlencode(i) + '&'
 
         r = {}
-
         try:
             # request url
             url = self.get_url(method)
@@ -122,7 +123,7 @@ class Bitrix24(object):
     
     def get_url(self, method):
         if self.webhook_key:
-            return self.webhook_url % (self.domain, self.webhook_key, method)
+            return self.webhook_url % (self.domain, self.webhook_user, self.webhook_key, method)
         else:
             return self.api_url % (self.domain, method)
         
